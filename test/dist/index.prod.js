@@ -1,0 +1,1 @@
+"use strict";var Promise=require("../dist/Promise_ES"),p=new Promise(function(o,n){setTimeout(function(){n(100)},1e3)});p.finally(function(){console.log("finally")}).then(function(o){console.log("success",o)},function(o){console.log("fail",o)});
