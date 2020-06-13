@@ -33,9 +33,9 @@ Achieving the PromiseA+ specification
 /* 核心注解 */
 /* 1、Promise应该被设计为一个类(构造函数) */
 /* 2、Promise存在三种状态，分别是pending(等待)、rejected(失败) 和 resolved(成功)。*/
-/* 3、Promise类(构造函数)接收一个“拥有两个函数参数的函数”作为参数，我们可以称之为执行器函数(executor),立即执行。 */
+/* 3、Promise类(构造函数)接收一个“拥有两个函数参数的函数”作为参数，我们可以称之为执行器函数(executor),立即执行。*/
 /* 4、Promise类(构造函数)内部应该以私有函数的方式来是实现reject和resolve函数。 */
-/* 5、Promise内部考虑到异步任务的执行(譬如定时器)Promise状态无法立即完成等待->成功|失败的切换，因此使用注册/订阅模式 */
+/* 5、Promise内部考虑到异步任务的执行(譬如定时器)Promise状态无法立即完成等待->成功|失败的切换，使用注册/订阅模式 */
 /* 6、Promise的then方法处理失败、成功、等待态(如果存在异步任务)的Promise后续任务。 */
 /* 7、Promise的then方法应该实现链式调用，实现的策略是总是返回一个新的Promise对象 */
 
@@ -183,3 +183,9 @@ Promise.defer = Promise.deferred = function() {
 module.exports = Promise;
 ```
 > 测试方法
+
+```bash
+npm install promises-aplus-tests g
+cd dist
+promises-aplus-tests Promise.js
+```
