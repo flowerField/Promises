@@ -11,27 +11,34 @@ const PENDING = "PENDING";
 const RESOLVED = "RESOLVED";
 const REJECTED = "REJECTED";
 
-let resolvePromise = (promise, x, resolve, reject) => {
+function resolvePromise(promise, x, resolve, reject) {
 
     /* 1、死循环处理 */
     if (promise === x) {
         reject(new TypeError("# Chaining cycle detected for promise #<Promise>"))
     }
 
+    let called = false;
     /* 2、区分返回值是基本值和(Promise)的情况*/
     if ((typeof x === "object" && x != null) || typeof x === "function") {
         try {
             let then = x.then;
             if (typeof then === "function") {
                 then.call(x, y => {
+                    if (called) return;
+                    called = true;
                     resolvePromise(promise, y, resolve, reject); /* 递归调用 */
                 }, r => {
+                    if (called) return;
+                    called = true;
                     reject(r);
                 })
             } else {
                 resolve(x);
             }
         } catch (e) {
+            if (called) return;
+            called = true;
             reject(e);
         }
     } else {
@@ -47,6 +54,19 @@ class Promise {
         this.resolvedCallBacks = [];
 
         /* reject 和 resolve 应该被实现为私有函数 */
+        let resolve = (val) => {
+
+            if (val instanceof Promise) {
+                return val.then(resolve, reject);
+            }
+
+            if (this.status === PENDING) {
+                this.status = RESOLVED;
+                this.value = val;
+                this.resolvedCallBacks.forEach(fn => fn());
+            }
+        }
+
         let reject = (val) => {
             if (this.status === PENDING) {
                 this.status = REJECTED;
@@ -55,22 +75,17 @@ class Promise {
             }
         }
 
-        let resolve = (val) => {
-            if (this.status === PENDING) {
-                this.status = RESOLVED;
-                this.value = val;
-                this.resolvedCallBacks.forEach(fn => fn());
-            }
-        }
-
         /* 执行器函数应该立即执行，并进行异常处理 */
         try {
-            executor(reject, resolve);
+            executor(resolve, reject);
         } catch (e) {
             reject(e);
         }
     }
     then(onFulfilled, onRejected) {
+        onFulfilled = typeof onFulfilled === "function" ? onFulfilled : v => v;
+        onRejected = typeof onRejected === "function" ? onRejected : e => { throw e }
+
         let promise = new Promise((resolve, reject) => {
             if (this.status === RESOLVED) {
                 setTimeout(() => {
@@ -110,7 +125,7 @@ class Promise {
                 this.resolvedCallBacks.push(() => {
                     setTimeout(() => {
                         try {
-                            let x = onFulfilled(this.reason);
+                            let x = onFulfilled(this.value);
                             resolvePromise(promise, x, resolve, reject);
                         } catch (e) {
                             reject(e);
@@ -121,4 +136,25 @@ class Promise {
         })
         return promise;
     }
+}
+
+module.exports = Promise;
+
+
+/* 基准测试 */
+// Promise.defer = Promise.deferred = function() {
+//     let dfd = {};
+//     dfd.promise = new Promise((resolve, reject) => {
+//         dfd.resolve = resolve;
+//         dfd.reject = reject;
+//     })
+//     return dfd;
+// }
+Promise.defer = Promise.deferred = function() {
+    let dfd = {};
+    dfd.promise = new Promise((resolve, reject) => {
+        dfd.resolve = resolve;
+        dfd.reject = reject;
+    })
+    return dfd;
 }

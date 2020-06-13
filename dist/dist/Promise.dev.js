@@ -27,13 +27,14 @@ var PENDING = "PENDING";
 var RESOLVED = "RESOLVED";
 var REJECTED = "REJECTED";
 
-var resolvePromise = function resolvePromise(promise, x, resolve, reject) {
+function resolvePromise(promise, x, resolve, reject) {
   /* 1、死循环处理 */
   if (promise === x) {
     reject(new TypeError("# Chaining cycle detected for promise #<Promise>"));
   }
-  /* 2、区分返回值是基本值和(Promise)的情况*/
 
+  var called = false;
+  /* 2、区分返回值是基本值和(Promise)的情况*/
 
   if (_typeof(x) === "object" && x != null || typeof x === "function") {
     try {
@@ -41,21 +42,27 @@ var resolvePromise = function resolvePromise(promise, x, resolve, reject) {
 
       if (typeof then === "function") {
         then.call(x, function (y) {
+          if (called) return;
+          called = true;
           resolvePromise(promise, y, resolve, reject);
           /* 递归调用 */
         }, function (r) {
+          if (called) return;
+          called = true;
           reject(r);
         });
       } else {
         resolve(x);
       }
     } catch (e) {
+      if (called) return;
+      called = true;
       reject(e);
     }
   } else {
     resolve(x);
   }
-};
+}
 
 var Promise =
 /*#__PURE__*/
@@ -71,6 +78,21 @@ function () {
     this.resolvedCallBacks = [];
     /* reject 和 resolve 应该被实现为私有函数 */
 
+    var resolve = function resolve(val) {
+      if (val instanceof Promise) {
+        return val.then(resolve, reject);
+      }
+
+      if (_this.status === PENDING) {
+        _this.status = RESOLVED;
+        _this.value = val;
+
+        _this.resolvedCallBacks.forEach(function (fn) {
+          return fn();
+        });
+      }
+    };
+
     var reject = function reject(val) {
       if (_this.status === PENDING) {
         _this.status = REJECTED;
@@ -81,22 +103,11 @@ function () {
         });
       }
     };
-
-    var resolve = function resolve(val) {
-      if (_this.status === PENDING) {
-        _this.status = RESOLVED;
-        _this.value = val;
-
-        _this.resolvedCallBacks.forEach(function (fn) {
-          return fn();
-        });
-      }
-    };
     /* 执行器函数应该立即执行，并进行异常处理 */
 
 
     try {
-      executor(reject, resolve);
+      executor(resolve, reject);
     } catch (e) {
       reject(e);
     }
@@ -107,6 +118,12 @@ function () {
     value: function then(onFulfilled, onRejected) {
       var _this2 = this;
 
+      onFulfilled = typeof onFulfilled === "function" ? onFulfilled : function (v) {
+        return v;
+      };
+      onRejected = typeof onRejected === "function" ? onRejected : function (e) {
+        throw e;
+      };
       var promise = new Promise(function (resolve, reject) {
         if (_this2.status === RESOLVED) {
           setTimeout(function () {
@@ -145,7 +162,7 @@ function () {
           _this2.resolvedCallBacks.push(function () {
             setTimeout(function () {
               try {
-                var x = onFulfilled(_this2.reason);
+                var x = onFulfilled(_this2.value);
                 resolvePromise(promise, x, resolve, reject);
               } catch (e) {
                 reject(e);
@@ -160,3 +177,23 @@ function () {
 
   return Promise;
 }();
+
+module.exports = Promise;
+/* 基准测试 */
+// Promise.defer = Promise.deferred = function() {
+//     let dfd = {};
+//     dfd.promise = new Promise((resolve, reject) => {
+//         dfd.resolve = resolve;
+//         dfd.reject = reject;
+//     })
+//     return dfd;
+// }
+
+Promise.defer = Promise.deferred = function () {
+  var dfd = {};
+  dfd.promise = new Promise(function (resolve, reject) {
+    dfd.resolve = resolve;
+    dfd.reject = reject;
+  });
+  return dfd;
+};
