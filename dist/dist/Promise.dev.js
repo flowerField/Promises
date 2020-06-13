@@ -177,17 +177,8 @@ function () {
 
   return Promise;
 }();
-
-module.exports = Promise;
 /* 基准测试 */
-// Promise.defer = Promise.deferred = function() {
-//     let dfd = {};
-//     dfd.promise = new Promise((resolve, reject) => {
-//         dfd.resolve = resolve;
-//         dfd.reject = reject;
-//     })
-//     return dfd;
-// }
+
 
 Promise.defer = Promise.deferred = function () {
   var dfd = {};
@@ -197,3 +188,5 @@ Promise.defer = Promise.deferred = function () {
   });
   return dfd;
 };
+
+module.exports = Promise;
