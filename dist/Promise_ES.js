@@ -150,6 +150,34 @@ class Promise {
             reject(err);
         })
     }
+    static all(promises) {
+        // 需要等所有的promises都执行完毕才整个的执行完毕
+        return new Promise((resolve, reject) => {
+
+            let idx = 0;
+            let arr = [];
+
+            function process(key, data) {
+                idx++;
+                arr[key] = data;
+                if (idx === promises.length) {
+                    resolve(arr);
+                }
+            }
+
+            promises.forEach((current, idx) => {
+                if (typeof current.then == "function") {
+                    current.then((data) => {
+                        process(idx, data);
+                    }, err => {
+                        reject(err);
+                    })
+                } else {
+                    process(idx, current);
+                }
+            })
+        })
+    }
     finally(callBack) {
         return this.then(
             (value) => {

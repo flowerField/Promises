@@ -206,6 +206,36 @@ function () {
         reject(err);
       });
     }
+  }, {
+    key: "all",
+    value: function all(promises) {
+      // 需要等所有的promises都执行完毕才整个的执行完毕
+      return new Promise(function (resolve, reject) {
+        var idx = 0;
+        var arr = [];
+
+        function process(key, data) {
+          idx++;
+          arr[key] = data;
+
+          if (idx === promises.length) {
+            resolve(arr);
+          }
+        }
+
+        promises.forEach(function (current, idx) {
+          if (typeof current.then == "function") {
+            current.then(function (data) {
+              process(idx, data);
+            }, function (err) {
+              reject(err);
+            });
+          } else {
+            process(idx, current);
+          }
+        });
+      });
+    }
   }]);
 
   return Promise;
