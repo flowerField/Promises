@@ -1,0 +1,124 @@
+/* 核心注解 */
+/* 1、Promise应该被设计为一个类(构造函数) */
+/* 2、Promise存在三种状态，分别是pending(等待)、rejected(失败) 和 resolved(成功)。*/
+/* 3、Promise类(构造函数)接收一个“拥有两个函数参数的函数”作为参数，我们可以称之为执行器函数(executor),立即执行。 */
+/* 4、Promise类(构造函数)内部应该以私有函数的方式来是实现reject和resolve函数。 */
+/* 5、Promise内部考虑到异步任务的执行(譬如定时器)Promise状态无法立即完成等待->成功|失败的切换，因此使用注册/订阅模式 */
+/* 6、Promise的then方法处理失败、成功、等待态(如果存在异步任务)的Promise后续任务。 */
+/* 7、Promise的then方法应该实现链式调用，实现的策略是总是返回一个新的Promise对象 */
+
+const PENDING = "PENDING";
+const RESOLVED = "RESOLVED";
+const REJECTED = "REJECTED";
+
+let resolvePromise = (promise, x, resolve, reject) => {
+
+    /* 1、死循环处理 */
+    if (promise === x) {
+        reject(new TypeError("# Chaining cycle detected for promise #<Promise>"))
+    }
+
+    /* 2、区分返回值是基本值和(Promise)的情况*/
+    if ((typeof x === "object" && x != null) || typeof x === "function") {
+        try {
+            let then = x.then;
+            if (typeof then === "function") {
+                then.call(x, y => {
+                    resolvePromise(promise, y, resolve, reject); /* 递归调用 */
+                }, r => {
+                    reject(r);
+                })
+            } else {
+                resolve(x);
+            }
+        } catch (e) {
+            reject(e);
+        }
+    } else {
+        resolve(x);
+    }
+}
+
+class Promise {
+    constructor(executor) {
+        this.status = PENDING;
+        this.value = this.reason = undefined;
+        this.rejectedCallBacks = [];
+        this.resolvedCallBacks = [];
+
+        /* reject 和 resolve 应该被实现为私有函数 */
+        let reject = (val) => {
+            if (this.status === PENDING) {
+                this.status = REJECTED;
+                this.reason = val;
+                this.rejectedCallBacks.forEach(fn => fn());
+            }
+        }
+
+        let resolve = (val) => {
+            if (this.status === PENDING) {
+                this.status = RESOLVED;
+                this.value = val;
+                this.resolvedCallBacks.forEach(fn => fn());
+            }
+        }
+
+        /* 执行器函数应该立即执行，并进行异常处理 */
+        try {
+            executor(reject, resolve);
+        } catch (e) {
+            reject(e);
+        }
+    }
+    then(onFulfilled, onRejected) {
+        let promise = new Promise((resolve, reject) => {
+            if (this.status === RESOLVED) {
+                setTimeout(() => {
+                    try {
+                        let x = onFulfilled(this.value);
+                        resolvePromise(promise, x, resolve, reject);
+                    } catch (e) {
+                        reject(e);
+                    }
+                }, 0);
+
+            }
+
+            if (this.status === REJECTED) {
+                setTimeout(() => {
+                    try {
+                        let x = onRejected(this.reason);
+                        resolvePromise(promise, x, resolve, reject);
+                    } catch (e) {
+                        reject(e);
+                    }
+                }, 0);
+            }
+
+            if (this.status === PENDING) {
+                this.rejectedCallBacks.push(() => {
+                    setTimeout(() => {
+                        try {
+                            let x = onRejected(this.reason);
+                            resolvePromise(promise, x, resolve, reject);
+                        } catch (e) {
+                            reject(e);
+                        }
+                    }, 0);
+                })
+
+                this.resolvedCallBacks.push(() => {
+                    setTimeout(() => {
+                        try {
+                            let x = onFulfilled(this.reason);
+                            resolvePromise(promise, x, resolve, reject);
+                        } catch (e) {
+                            reject(e);
+                        }
+                    }, 0);
+                })
+            }
+        })
+        return promise;
+    }
+}

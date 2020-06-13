@@ -1,4 +1,4 @@
-# Promises
+# Promise
 Achieving the PromiseA+ specification
 
 <img src="./src/promise.png">
@@ -25,3 +25,9 @@ Achieving the PromiseA+ specification
   // Symbol(Symbol.species): (...)
   // Symbol(Symbol.toStringTag): "Promise"
 ```
+
+> [Promises/A+](https://promisesaplus.com/) 规范约定的Promise的实现逻辑，该仓库手写 `Promise.js` 文件代码以实现[Promises/A+]() 规范。
+
+> 核心代码
+
+> 测试方法
