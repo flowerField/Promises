@@ -6,6 +6,8 @@
 /* 5、Promise内部考虑到异步任务的执行(譬如定时器)Promise状态无法立即完成等待->成功|失败的切换，因此使用注册/订阅模式 */
 /* 6、Promise的then方法处理失败、成功、等待态(如果存在异步任务)的Promise后续任务。 */
 /* 7、Promise的then方法应该实现链式调用，实现的策略是总是返回一个新的Promise对象 */
+/* 8、Promise的All方法等待所有的任务都执行完毕后转入到then函数执行 */
+/* 9、Promise的finally方法无论如何均能监听任务的执行完毕 */
 
 const PENDING = "PENDING";
 const RESOLVED = "RESOLVED";
